@@ -40,7 +40,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     KVUri = f"https://{keyVaultName}.vault.azure.net"
     credential = DefaultAzureCredential()
     client = SecretClient(vault_url=KVUri, credential=credential)
-    database = 'ssdom320sqldatabase02'
+    database = 'ssdom320sqldatabase01'
     tablename = "WeatherDataFull"
     dbuser = 'ssano'
     
