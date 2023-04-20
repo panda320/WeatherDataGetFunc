@@ -77,13 +77,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500
         )
 
-
     #実行日取得
     dt = datetime.datetime.today()
     execdate = dt.strftime('%Y-%m-%d')
 
     #APIから気象データ取得し、resのHTTPステータスコードが200の場合は正常ログを出力。それ以外はエラーログを出力。
-    #res = requests.get(url).json()
     res = requests.get(url)
     if res.status_code == 200:
         logging.info('(WeatherDataDbInsert)Data is got.')
