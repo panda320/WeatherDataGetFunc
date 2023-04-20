@@ -6,7 +6,7 @@ from sqlalchemy import create_engine, text, NVARCHAR
 import datetime
 import os
 
-#keyvaultからDB接続情報を取得
+#keyvaultからDB接続情報を取得するためのライブラリをインポート
 from azure.keyvault.secrets import SecretClient
 from azure.identity import DefaultAzureCredential
 
@@ -19,14 +19,17 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     if env == 'Dev':
         url = 'http://localhost:7071/api/WeatherDataGet'
         odbcdriver = 'ODBC Driver 18 for SQL Server'
+        logging.info('(WeatherDataDbInsert)Development environment.')
     #テスト環境の場合(Functionの場合は、ODBC Driver 17 for SQL Serverに変更する必要がある)
     elif env == 'Test':
-        url = 'https://ssdomfunc01-test.azurewebsites.net/api/WeatherDataGet'
+        url = 'https://weatherdatagetfunc-test.azurewebsites.net/api/WeatherDataGet'
         odbcdriver = 'ODBC Driver 17 for SQL Server'
+        logging.info('(WeatherDataDbInsert)Test environment.')
     #本番環境の場合(Functionの場合は、ODBC Driver 17 for SQL Serverに変更する必要がある)
     elif env == 'Prod':
-        url = 'https://ssdomfunc01.azurewebsites.net/api/WeatherDataGet'
+        url = 'https://weatherdatagetfunc.azurewebsites.net/api/WeatherDataGet'
         odbcdriver = 'ODBC Driver 17 for SQL Server'
+        logging.info('(WeatherDataDbInsert)Prod environment.')
     #実行環境が取得できない場合
     else:
         logging.error('(WeatherDataDbInsert)Environment is not set.')
@@ -83,12 +86,13 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     #APIから気象データ取得しデータフレームに格納
     res = requests.get(url).json()
     df = pd.DataFrame(res)
-
-    #気象データ取得確認
-    if len(df) == 0:
-        logging.error('(WeatherDataDbInsert)API is executed. Data is empty.')
+    #リクエストのHTTPステータスコードが200の場合は正常ログを出力。それ以外はエラーログを出力
+    if res.status_code == 200:
+        logging.info('(WeatherDataDbInsert) Data is got from WeatherDataGetAPI.')
+    else:
+        logging.error('(WeatherDataDbInsert)Data is not got from WeatherDataGetAPI.')
         return func.HttpResponse(
-            "(WeatherDataDbInsert)Data is empty.",
+            "(WeatherDataDbInsert)Data is not got from WeatherDataGetAPI.",
             status_code=500
         )
     
