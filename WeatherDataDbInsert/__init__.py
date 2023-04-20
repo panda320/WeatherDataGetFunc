@@ -49,7 +49,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     
     #IaaSDBかAzureSQLDBかを判定するためのパラメータを取得
     plat = req.params.get('plat')
-
     #IaaSのDBの場合
     if plat == 'IaaS':
         #keyvaultからDBパスワードを取得
@@ -70,7 +69,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         dbuserpass = secret.value
         #AzureSQLDBに接続するための接続文字列を設定。接続タイムアウト対策としてタイムアウト値を60秒に設定
         conn = f"mssql+pyodbc://{dbuser}:{dbuserpass}@{server}/{database}?driver={odbcdriver}&timeout=60"
-        #conn = f"mssql+pyodbc://{dbuser}:{dbuserpass}@{server}/{database}?driver={odbcdriver}"
     #IaaSDBかAzureSQLDBかを判定するためのパラメータがない場合
     else:
         logging.error('(WeatherDataDbInsert)Plat parameter is not set.')
@@ -79,29 +77,31 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500
         )
 
+
     #実行日取得
     dt = datetime.datetime.today()
     execdate = dt.strftime('%Y-%m-%d')
 
-    #APIから気象データ取得しデータフレームに格納
-    res = requests.get(url).json()
-    df = pd.DataFrame(res)
-    #リクエストのHTTPステータスコードが200の場合は正常ログを出力。それ以外はエラーログを出力
+    #APIから気象データ取得し、resのHTTPステータスコードが200の場合は正常ログを出力。それ以外はエラーログを出力。
+    #res = requests.get(url).json()
+    res = requests.get(url)
     if res.status_code == 200:
-        logging.info('(WeatherDataDbInsert) Data is got from WeatherDataGetAPI.')
+        logging.info('(WeatherDataDbInsert)Data is got.')
     else:
-        logging.error('(WeatherDataDbInsert)Data is not got from WeatherDataGetAPI.')
+        logging.error('(WeatherDataDbInsert)Data is not got.')
         return func.HttpResponse(
-            "(WeatherDataDbInsert)Data is not got from WeatherDataGetAPI.",
+            "(WeatherDataDbInsert)Data is not got.",
             status_code=500
         )
-    
+
+    #取得したデータをjson形式からデータフレームに変換
+    res = res.json()
+    df = pd.DataFrame(res)
+
     #データフレームに取得日列を追加
     df.insert(0, 'date', execdate)
     #AzureSQLdatbaseに接続
     engine = create_engine(conn)
-    #AzureSQLdatbaseにデータを追加
-    #df.to_sql(tablename, engine, if_exists='append', index=False, dtype={'prefecture': NVARCHAR , 'location':NVARCHAR })
     #AzureSQLdatabaseにデータを追加。接続タイムアウト対策として3回リトライする。
     for i in range(3):
         try:

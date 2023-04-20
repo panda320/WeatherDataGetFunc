@@ -49,7 +49,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     #JSON形式に変換
     json_str = df.to_json(orient='records', force_ascii=False)
 
-    #データ取得確認
+    #データ取得に失敗した場合はHTTPステータス500を返し、成功した場合はHTTPステータス200を返す
     if df is None:
         logging.error('(WeatherDataGet)Failed to get weather data.(WeatherDataGet)')
         return func.HttpResponse(
